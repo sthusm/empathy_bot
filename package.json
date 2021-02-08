@@ -1,0 +1,19 @@
+{
+  "name": "empathy_bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/index.js",
+  "scripts": {
+    "bot": "nodemon src/index.js"
+  },
+  "author": "softs",
+  "license": "ISC",
+  "dependencies": {
+    "mongoose": "^5.11.15",
+    "telegraf": "^3.38.0"
+  },
+  "devDependencies": {
+    "eslint": "^7.15.0",
+    "nodemon": "^2.0.6"
+  }
+}
