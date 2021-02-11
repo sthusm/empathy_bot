@@ -5,6 +5,7 @@ const {
 
 const schema = new Schema({
   telegramId: { type: Number, required: true, unique: true },
+  name: { type: String },
   gender: { type: String },
 })
 

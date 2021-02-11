@@ -6,18 +6,9 @@ const HELP_COMMAND = `
   Сюда будут пересылаться сообщения всех, кто откликнулся и ты сможешь выбрать того, кто ближе твоему сердцу в данный момент никого при этом не обидев.
 `
 
-// const menu = () => {
-//   return Extra
-//     .markup((m) =>
-//       m.inlineKeyboard([
-//         m.callbackButton('Начать', '0')
-//       ])
-//     )
-// }
-
 const responseMenu = (buttonText, buttonValue = '0') => {
   return Extra
-    .markup((m) =>
+    .markup(m =>
       m.inlineKeyboard([
         m.callbackButton(buttonText, String(buttonValue)),
       ])
@@ -26,31 +17,40 @@ const responseMenu = (buttonText, buttonValue = '0') => {
 
 const chooseGender = () => {
   return Extra
-    .markup((m) => 
-      m.inlineKeyboard([
-        m.callbackButton('👦 Мужчина', 'Male'),
-        m.callbackButton('👩 Женщина', 'Female'),
-      ])
+    .markup(m => 
+      m
+        .keyboard([
+          m.callbackButton('👦 Мужчина', 'Male'),
+          m.callbackButton('👩 Женщина', 'Female'),
+        ])
+        .resize()
+        .oneTime()
     )
 }
 
 const selectRequestType = () => {
   return Extra
-    .markup((m) =>
-      m.inlineKeyboard([
-        m.callbackButton('Предложить', 'Offer'),
-        m.callbackButton('Запросить', 'Ask'),
-      ])
+    .markup(m =>
+      m
+        .keyboard([
+          m.callbackButton('Предложить', 'Offer'),
+          m.callbackButton('Запросить', 'Ask'),
+        ])
+        .resize()
+        .oneTime()
     )
 }
 
 const selectPrivacy = () => {
   return Extra
-    .markup((m) =>
-      m.inlineKeyboard([
-        m.callbackButton('Анонимно', 'Private'),
-        m.callbackButton('Не анонимно', 'Public'),
-      ])
+    .markup(m =>
+      m
+        .keyboard([
+          m.callbackButton('Анонимно', 'Private'),
+          m.callbackButton('Не анонимно', 'Public'),
+        ])
+        .resize()
+        .oneTime()
     )
 }
 

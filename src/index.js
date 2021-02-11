@@ -11,8 +11,11 @@ const {
 const { 
   HELP_COMMAND,
   responseMenu,
+  chooseGender,
 } = require('./utils/buttons.js')
 const bot = new Telegraf(BOT_TOKEN)
+const User = require('./db/dao/user_query.js')
+const MessageState = require('./db/dao/messageState_query.js')
 const mongoose = require('mongoose')
 const SceneGenerator = require('./scenes.js')
 const sg = new SceneGenerator()
@@ -29,48 +32,81 @@ bot.use(stage.middleware())
 bot.start(async ctx => {
   if (ctx.message.chat.id !== ctx.from.id) return
 
-  await ctx.reply(HELP_COMMAND, responseMenu('Начать'))
+  await ctx.reply(HELP_COMMAND, responseMenu('Начать', 'reqSceneStart'))
+})
+bot.command('changeGender', async ctx => {
+  if (ctx.message.chat.id !== ctx.from.id) return
+
+  await ctx.reply('Укажите Ваш пол', chooseGender())
+})
+bot.hears(['👦 Мужчина', '👩 Женщина'], async ctx => {
+  if (ctx.message.chat.id !== ctx.from.id) return
+
+  let gender
+  if (ctx.match === '👦 Мужчина') gender = 'Male'
+  else gender = 'Female'
+
+  await User.update(ctx.update.message.from.id, { gender })
+  await ctx.reply('Настройки успешно изменены!')
 })
 bot.on('text', async ctx => {
   if (ctx.message.chat.id !== ctx.from.id) return
 
-  await ctx.reply('Если тебе нужно найти того, кому можно высказаться, нажми на кнопку ниже', responseMenu('Начать'))
-})
-bot.command('reqHelp', async ctx => {
-  if (ctx.message.chat.id !== ctx.from.id) return
-
-  await ctx.scene.enter('helpRequest')
+  await ctx.reply(
+    'Если тебе нужно найти того, кому можно высказаться, нажми на кнопку ниже', 
+    responseMenu('Начать', 'reqSceneStart')
+  )
 })
 bot.on('callback_query', async ctx => {
-  // отвечаем телеграму что получили от него запрос
-  ctx.answerCbQuery()
-
-  const keyboard = ctx.callbackQuery.message.reply_markup.inline_keyboard[0][0]
+  const buttonValue = ctx.callbackQuery.message.reply_markup.inline_keyboard[0][0]?.callback_data
 
   // пересланное сообщение из чата
   if (String(ctx.callbackQuery.message.chat.id) === EMPATHY_CHAT_ID) {
-    let chatWhereHelpWasRequested = keyboard.callback_data
-    let { username } = ctx.from
+    await ctx.answerCbQuery('Спасибо! Ваш отклик успешно отправлен!', true)
+    const { username } = ctx.from
 
     if (!username) {
-      ctx.telegram.sendMessage(
+      await ctx.telegram.sendMessage(
         ctx.from.id,
         'Для того, чтобы человек мог с Вами связаться, пожалуйста, заполните в настройках аккаунта Telegram поле username'
       )
       return
     }
 
-    await ctx.telegram.sendCopy(chatWhereHelpWasRequested, {
-      id: ctx.callbackQuery.message.message_id,
-      text: `@${username} откликнулся на Ваше сообщение`,
-    })
+    // в buttonValue лежит id чата юзера, который отправил запрос
+    await ctx.telegram.sendMessage(
+      buttonValue, 
+      `@${username} откликнулся на Ваше сообщение`, 
+      responseMenu('🤝 Принять запрос', `helpReqCancel @${username}`)
+    )
+  } else if (buttonValue.includes('helpReqCancel')) {
+    const ms = await MessageState.find(ctx.callbackQuery.from.id)
+    const additionalInfo = buttonValue.replace('helpReqCancel ', '')
 
-    // ctx.scene.enter('helpReqHandler', {
-    //   chatWhereHelpWasRequested,
-    //   from: ctx.from,
-    //   message: ctx.callbackQuery.message
-    // })
-  } else {
+    if (!ms.messageId) {
+      await ctx.answerCbQuery('Запрос уже и так закрыт =)', true)
+      return
+    } else if (additionalInfo.startsWith('@')) {
+      ctx.answerCbQuery(
+        `Вы приняли отклик от ${additionalInfo}. Напишите ему/ей в личные сообщения.`,
+        true
+      )
+    } else {
+      await ctx.answerCbQuery('Запрос закрыт!', true)
+    }
+
+    clearTimeout(ctx.session.reqTimeout)
+    await ctx.telegram.sendMessage(
+      EMPATHY_CHAT_ID,
+      'Закрыто.',
+      { reply_to_message_id: Number(ms.messageId) }
+    )
+    await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(ms.messageId))
+
+    ctx.session.activeRequest = false
+    await MessageState.createOrUpdate(ctx.callbackQuery.from.id, { messageId: null })
+  } else if (buttonValue === 'reqSceneStart') {
+    ctx.answerCbQuery()
     await ctx.scene.enter('helpRequest')
   }
 })
