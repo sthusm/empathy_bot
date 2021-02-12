@@ -1,11 +1,5 @@
 const Extra = require('telegraf/extra')
 
-const HELP_COMMAND = `
-  Привет! Я бот для эмпатии. Через меня можно отправить анонимный или не анонимный запрос на эмпатию или опубликовать предложение эмпатии. 
-  Твое сообщение от имени бота появится в чате Кафе Эмпатии @empathycafe. 
-  Сюда будут пересылаться сообщения всех, кто откликнулся и ты сможешь выбрать того, кто ближе твоему сердцу в данный момент никого при этом не обидев.
-`
-
 const responseMenu = (buttonText, buttonValue = '0') => {
   return Extra
     .markup(m =>
@@ -55,7 +49,6 @@ const selectPrivacy = () => {
 }
 
 module.exports = {
-  HELP_COMMAND,
   responseMenu,
   chooseGender,
   selectRequestType,

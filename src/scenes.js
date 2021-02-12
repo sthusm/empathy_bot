@@ -5,14 +5,17 @@ const {
   chooseGender,
   selectRequestType,
   selectPrivacy,
-} = require('./utils/buttons.js')
-const User = require('./db/dao/user_query.js')
-const MessageState = require('./db/dao/messageState_query.js')
+} = require('./core/utils/buttons.js')
+const userQuery = require('./core/query_service/users/users_query.js')
+const requestQuery = require('./core/query_service/requests/requests_query.js')
 const { 
   requestTextGenerator,
   convertTime,
-} = require('./utils/helpers.js')
-
+} = require('./core/utils/helpers.js')
+const { 
+  ASK_REPLY,
+  OFFER_REPLY,
+} = require('./core/utils/phrases.js')
 class SceneGenerator {
   genHelpRequest () {
     const helpRequest = new Scene('helpRequest')
@@ -24,16 +27,14 @@ class SceneGenerator {
       }
       ctx.session.enterScene = true
   
-      const user = await User.findOrCreate({
-        telegramId: ctx.from.id,
-        name: ctx.from.first_name,
-      })
+      const user = await userQuery.find(ctx.from.id)
+      console.log(user)
 
       console.log(ctx.from)
 
       ctx.session.user = {
         username: ctx.from.username,
-        ...user._doc,
+        ...user,
       }
 
       if (!user.gender) {
@@ -42,23 +43,26 @@ class SceneGenerator {
     })
     helpRequest.hears(['👦 Мужчина', '👩 Женщина'], async ctx => {
       let gender
-      if (ctx.match === '👦 Мужчина') gender = 'Male'
-      else gender = 'Female'
+      if (ctx.match === '👦 Мужчина') gender = 'male'
+      else gender = 'female'
 
-      await User.update(ctx.session.user.telegramId, { gender })
+      await userQuery.update(ctx.session.user.telegramId, { gender })
 
       ctx.session.user.gender = gender
       await ctx.reply('Вы хотите предложить эмпатию или запросить?', selectRequestType())
     })
     helpRequest.hears(['Предложить', 'Запросить'], async ctx => {
+      let messageText
       if (ctx.match === 'Предложить') {
         ctx.session.private = false
-        ctx.session.reqType = '🦒 Предложение эмпатии'
+        ctx.session.reqType = 'offer'
+        messageText = OFFER_REPLY
       } else {
-        ctx.session.reqType = '🌿 Запрос на эмпатию'
+        ctx.session.reqType = 'ask'
+        messageText = ASK_REPLY
       }
       
-      await ctx.reply('Введите наименование вашего запроса')
+      await ctx.reply(messageText, { parse_mode: 'HTML' })
     })
     helpRequest.hears(['Анонимно', 'Не анонимно'], async ctx => {
       ctx.session.private = ctx.match === 'Анонимно'
@@ -80,10 +84,12 @@ class SceneGenerator {
         responseMenu('👋 Откликнуться', ctx.session.message.chat.id)
       )
 
-      await MessageState.createOrUpdate(
-        ctx.session.user.telegramId, 
-        { messageId: mes.message_id }
-      )
+      const req = await requestQuery.create({
+        messageId: mes.message_id,
+        type: ctx.session.reqType,
+        authorId: ctx.session.user.telegramId,
+        private: ctx.session.private,
+      })
 
       ctx.session.reqTimeout = setTimeout(async () => {
         await ctx.telegram.sendMessage(
@@ -92,6 +98,7 @@ class SceneGenerator {
           { reply_to_message_id: Number(mes.message_id) }
         )
         await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(mes.message_id))
+        await requestQuery.update(req[0].id, { status: 'closed_by_time' })
       }, convertTime(duration))
 
       ctx.session.activeRequest = true
@@ -104,7 +111,7 @@ class SceneGenerator {
   
       const messageText = String(ctx.message.text)
 
-      if (messageText && messageText.length >= 5) {
+      if (messageText && messageText.length >= 15) {
         ctx.session.message = ctx.message
 
         if (ctx.session.private === false) {
@@ -132,24 +139,6 @@ class SceneGenerator {
     })
 
     return helpRequest
-  }
-
-  helpRequestHandler () {
-    const helpReqHandler = new Scene('helpReqHandler')
-
-    helpReqHandler.enter(async ctx => {
-      await ctx.telegram.sendCopy(ctx.scene.state.chatWhereHelpWasRequested, {
-        id: ctx.scene.state.message.message_id,
-        text: `@${ctx.scene.state.from.username} откликнулся на Ваше сообщение`,
-      }, responseMenu('Принять запрос', 'helpReqCancel'))
-    })
-
-    helpReqHandler.on('callback_query', async ctx => {
-      ctx.answerCbQuery()
-    })
-    helpReqHandler.on('text', async ctx => ctx.reply('text'))
-
-    return helpReqHandler
   }
 }
 

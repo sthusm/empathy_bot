@@ -2,12 +2,17 @@
 const MILLISECOND = 60000
 
 const genderMap = {
-  'Male': '👦',
-  'Female': '👩',
+  'male': '👦',
+  'female': '👩',
+}
+
+const reqTypeMap = {
+  'offer': '🦒 Предложение эмпатии',
+  'ask': '🌿 Запрос на эмпатию',
 }
 
 const requestTextGenerator = (message, data) => {
-  return `${data.reqType}.
+  return `${reqTypeMap[data.reqType]}.
 
 ${message}
 

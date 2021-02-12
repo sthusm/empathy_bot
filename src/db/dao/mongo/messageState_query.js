@@ -1,4 +1,4 @@
-const MessageState = require('../models/MessageState.js')
+const MessageState = require('../../models/MessageState.js')
 
 async function createOrUpdate (telegramId, params) {
   try {

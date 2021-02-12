@@ -1,4 +1,4 @@
-const User = require('../models/User.js')
+const User = require('../../models/User.js')
 
 async function findOrCreate (params) {
   let user = await User.findOne({ telegramId: params.telegramId })

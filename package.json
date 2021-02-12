@@ -9,7 +9,9 @@
   "author": "softs",
   "license": "ISC",
   "dependencies": {
+    "knex": "^0.21.17",
     "mongoose": "^5.11.15",
+    "pg": "^8.5.1",
     "telegraf": "^3.38.0"
   },
   "devDependencies": {
