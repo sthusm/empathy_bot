@@ -5,6 +5,7 @@ const COMMON_SELECT_FIELDS = Object.freeze([
   'requests.id',
   'requests.message_id',
   'requests.type',
+  'requests.duration',
   'requests.status',
   'requests.author_id',
 ])
@@ -51,9 +52,26 @@ async function findUserActiveRequest(userId) {
   return result[0]
 }
 
+async function findAllActiveRequests(transaction) {
+  return (
+    await (db || transaction)
+      .select([
+        'id',
+        'status',
+        'message_id',
+        'duration',
+        'created_at',
+        'author_id',
+      ])
+      .from(table)
+      .where({ status: 'active' })
+  )
+}
+
 module.exports = {
   create,
   findByMessage,
   update,
   findUserActiveRequest,
+  findAllActiveRequests,
 }

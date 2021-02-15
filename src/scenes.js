@@ -11,6 +11,7 @@ const requestQuery = require('./core/query_service/requests/requests_query.js')
 const { 
   requestTextGenerator,
   convertTime,
+  closeRequest,
 } = require('./core/utils/helpers.js')
 const { 
   ASK_REPLY,
@@ -21,14 +22,18 @@ class SceneGenerator {
     const helpRequest = new Scene('helpRequest')
 
     helpRequest.enter(async ctx => {
-      if (ctx.session.activeRequest) {
+      const req = await requestQuery.findUserActiveRequest(ctx.from.id)
+      for (let pror in ctx.session) console.log('pr', pror === '__scenes')
+      console.log('rrreeeqqq:', ctx.session)
+      if (req || ctx.session.activeRequest) {
+        ctx.session.activeRequest = true
         await ctx.scene.leave()
         return
       }
       ctx.session.enterScene = true
   
       const user = await userQuery.find(ctx.from.id)
-      console.log(user)
+      if (!user) return
 
       console.log(ctx.from)
 
@@ -38,10 +43,16 @@ class SceneGenerator {
       }
 
       if (!user.gender) {
+        ctx.session.genderChoosing = true
         await ctx.reply('Укажите Ваш пол', chooseGender())
-      } else await ctx.reply('Вы хотите предложить эмпатию или запросить?', selectRequestType())
+      } else {
+        await ctx.reply('Вы хотите предложить эмпатию или запросить?', selectRequestType())
+        ctx.session.reqTypeChoosing = true
+      }
     })
     helpRequest.hears(['👦 Мужчина', '👩 Женщина'], async ctx => {
+      if (!ctx.session.genderChoosing) return
+
       let gender
       if (ctx.match === '👦 Мужчина') gender = 'male'
       else gender = 'female'
@@ -50,8 +61,17 @@ class SceneGenerator {
 
       ctx.session.user.gender = gender
       await ctx.reply('Вы хотите предложить эмпатию или запросить?', selectRequestType())
+      ctx.session.reqTypeChoosing = true
+      delete ctx.session.genderChoosing
     })
     helpRequest.hears(['Предложить', 'Запросить'], async ctx => {
+      if (ctx.session.activeRequest) {
+        await ctx.scene.leave()
+        return
+      }
+
+      if (!ctx.session.reqTypeChoosing) return
+
       let messageText
       if (ctx.match === 'Предложить') {
         ctx.session.private = false
@@ -63,15 +83,29 @@ class SceneGenerator {
       }
       
       await ctx.reply(messageText, { parse_mode: 'HTML' })
+      delete ctx.session.reqTypeChoosing
     })
     helpRequest.hears(['Анонимно', 'Не анонимно'], async ctx => {
+      if (ctx.session.activeRequest) {
+        await ctx.scene.leave()
+        return
+      }
+
+      if (!ctx.session.reqType || !ctx.session.message) return
+
       ctx.session.private = ctx.match === 'Анонимно'
       ctx.session.waitForTime = true
 
       await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 60 минут).')
     })
     helpRequest.hears(/^[-]?\d+$/, async ctx => {
+      if (ctx.session.activeRequest) {
+        await ctx.scene.leave()
+        return
+      }
+
       if (!ctx.session.waitForTime) return
+
       const duration = Number(ctx.message.text)
       if (duration > 60 || duration < 0) {
         await ctx.reply('Вы ввели не корректное число =)')
@@ -89,17 +123,10 @@ class SceneGenerator {
         type: ctx.session.reqType,
         authorId: ctx.session.user.telegramId,
         private: ctx.session.private,
+        duration,
       })
 
-      ctx.session.reqTimeout = setTimeout(async () => {
-        await ctx.telegram.sendMessage(
-          EMPATHY_CHAT_ID,
-          'Закрыто.', 
-          { reply_to_message_id: Number(mes.message_id) }
-        )
-        await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(mes.message_id))
-        await requestQuery.update(req[0].id, { status: 'closed_by_time' })
-      }, convertTime(duration))
+      ctx.session.reqTimeout = setTimeout(closeRequest, convertTime(duration), ctx, req[0])
 
       ctx.session.activeRequest = true
       delete ctx.session.waitForTime
@@ -107,7 +134,12 @@ class SceneGenerator {
       await ctx.scene.leave()
     })
     helpRequest.on('text', async ctx => {
-      if (!ctx.session.user || !ctx.session.reqType || ctx.session.waitForTime) return
+      if (
+        !ctx.session.user || 
+        !ctx.session.reqType || 
+        ctx.session.waitForTime || 
+        ctx.session.message
+      ) return
   
       const messageText = String(ctx.message.text)
 
@@ -121,7 +153,7 @@ class SceneGenerator {
           await ctx.reply('Как разместить ваш запрос?', selectPrivacy())
         }
       } else {
-        await ctx.reply('Слишком короткий запрос, необходимо ввести хотя бы 5 символов')
+        await ctx.reply('Слишком короткий запрос, необходимо ввести хотя бы 15 символов')
       }
     })
     helpRequest.on('message', async ctx => ctx.reply('Пока что я понимаю только текст =)'))

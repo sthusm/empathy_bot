@@ -6,18 +6,17 @@ const {
 const { 
   BOT_TOKEN, 
   EMPATHY_CHAT_ID,
-  MONGO_URL,
 } = require('./config.js')
 const { 
   responseMenu,
   chooseGender,
 } = require('./core/utils/buttons.js')
 const { START_PHRASE } = require('./core/utils/phrases.js')
+const { closeRequest } = require('./core/utils/helpers.js')
 const bot = new Telegraf(BOT_TOKEN)
 const userQuery = require('./core/query_service/users/users_query.js')
 const requestQuery = require('./core/query_service/requests/requests_query.js')
 const responseQuery = require('./core/query_service/responses/responses_query.js')
-const mongoose = require('mongoose')
 const SceneGenerator = require('./scenes.js')
 const sg = new SceneGenerator()
 
@@ -132,15 +131,7 @@ bot.on('callback_query', async ctx => {
 
     clearTimeout(ctx.session.reqTimeout)
 
-    await requestQuery.update(req.id, { status })
-    await ctx.telegram.sendMessage(
-      EMPATHY_CHAT_ID,
-      'Закрыто.',
-      { reply_to_message_id: Number(req.message_id) }
-    )
-    await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(req.message_id))
-
-    ctx.session.activeRequest = false
+    await closeRequest(ctx, req, status)
   } else if (buttonValue === 'reqSceneStart') {
     ctx.answerCbQuery()
     await ctx.scene.enter('helpRequest')
@@ -149,12 +140,8 @@ bot.on('callback_query', async ctx => {
 
 async function start() {
   try {
-    await mongoose.connect(MONGO_URL, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      useCreateIndex: true,
-    })
-    bot.launch()
+    await bot.launch()
+    await requestQuery.activatePendingRequests(bot)
     console.log('The bot was successfully launched')
   } catch (e) {
     console.log('Server Error', e.message)
