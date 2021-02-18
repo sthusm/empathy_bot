@@ -48,9 +48,22 @@ const selectPrivacy = () => {
     )
 }
 
+const inlineKeyboard = (text) => {
+  return Extra
+    .markup(m =>
+      m
+        .keyboard([
+          m.button(text),
+        ])
+        .resize()
+        .oneTime()
+    )
+}
+
 module.exports = {
   responseMenu,
   chooseGender,
   selectRequestType,
   selectPrivacy,
+  inlineKeyboard,
 }

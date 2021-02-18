@@ -18,13 +18,12 @@ async function create(data, transaction) {
 }
 
 async function find(telegramId) {
-  const result = await
-    db
-      .select(COMMON_SELECT_FIELDS)
-      .from(table)
-      .whereRaw('users.telegram_id = ?', telegramId)
-
-  return result[0]
+  return (
+    await db.select(COMMON_SELECT_FIELDS)
+            .from(table)
+            .whereRaw('users.telegram_id = ?', telegramId)
+            .first()
+  )
 }
 
 async function update(telegramId, changes, transaction) {
@@ -32,7 +31,7 @@ async function update(telegramId, changes, transaction) {
     (transaction || db)
       .table(table)
       .whereRaw('users.telegram_id = ?', telegramId)
-      .update(changes)
+      .update(changes, ['status'])
 
   return result[0]
 }

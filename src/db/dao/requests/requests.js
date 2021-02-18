@@ -19,17 +19,15 @@ async function create(data, transaction) {
 }
 
 async function findByMessage(messageId) {
-  const result = await
-    db
-      .select(COMMON_SELECT_FIELDS)
-      .from(table)
-      .whereRaw('requests.message_id = ?', messageId)
-
-  return result[0]
+  return (
+    await db.select(COMMON_SELECT_FIELDS)
+            .from(table)
+            .whereRaw('requests.message_id = ?', messageId)
+            .first()
+  )
 }
 
 async function update(id, changes, transaction) {
-  console.log(id, changes)
   const result = await
     (transaction || db)
       .table(table)
@@ -40,16 +38,15 @@ async function update(id, changes, transaction) {
 }
 
 async function findUserActiveRequest(userId) {
-  const result = await
-    db
-      .select(COMMON_SELECT_FIELDS)
-      .from(table)
-      .where({
-        author_id: userId,
-        status: 'active',
-      })
-
-  return result[0]
+  return (
+    await db.select(COMMON_SELECT_FIELDS)
+            .from(table)
+            .where({
+              author_id: userId,
+              status: 'active',
+            })
+            .first()
+  )
 }
 
 async function findAllActiveRequests(transaction) {

@@ -13,16 +13,33 @@ const reqTypeMap = {
   'ask': '🌿 Запрос на эмпатию',
 }
 
+const userFullname = user => {
+  let fullname = ''
+
+  if (user.name) fullname += user.name
+  if (user.surname) fullname +=  fullname.length ? ` ${user.surname}` : user.surname
+
+  return fullname
+}
+
 const requestTextGenerator = (message, data) => {
   return `${reqTypeMap[data.reqType]}.
 
 ${message}
 
-${genderMap[data.user.gender]} ${data.private ? 'Анонимно' : `${data.user.name} @${data.user.username}`}
+${genderMap[data.user.gender]} ${data.private ? 'Анонимно' : `${userFullname(data.user)} @${data.user.username}`}
 `
 }
 
 const convertTime = (minutes) => Number(minutes) * MILLISECOND
+
+const clearSession = ctx => {
+  for (let prop in ctx.session) {
+    if (prop === '__scenes') continue
+
+    delete ctx.session[prop]
+  }
+}
 
 const closeRequest = async (ctx, req, status = 'closed_by_time', calledByTimeout) => {
   if (calledByTimeout) {
@@ -40,11 +57,7 @@ const closeRequest = async (ctx, req, status = 'closed_by_time', calledByTimeout
   
   await Requests.update(req.id, { status })
 
-  for (let prop in ctx.session) {
-    if (prop === '__scenes') return
-
-    delete ctx.session[prop]
-  }
+  clearSession(ctx)
 }
 
 module.exports = {
@@ -52,4 +65,5 @@ module.exports = {
   requestTextGenerator,
   convertTime,
   closeRequest,
+  clearSession,
 }

@@ -21,8 +21,8 @@ class RequestsQueryService {
     return await Requests.create(formatInsertData(data))
   }
 
-  async update(id, changes) {
-    return await Requests.update(id, formatInsertData(changes))
+  async update(id, changes, trx) {
+    return await Requests.update(id, formatInsertData(changes), trx)
   }
 
   async find(messageId) {

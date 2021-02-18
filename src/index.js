@@ -1,23 +1,27 @@
 const Telegraf = require('telegraf')
+const auth = require('./core/middlewares/auth')
 const {
   Stage,
   session,
 } = Telegraf
 const { 
-  BOT_TOKEN, 
+  BOT_TOKEN,
   EMPATHY_CHAT_ID,
-} = require('./config.js')
+} = require('./config')
 const { 
   responseMenu,
   chooseGender,
-} = require('./core/utils/buttons.js')
-const { START_PHRASE } = require('./core/utils/phrases.js')
-const { closeRequest } = require('./core/utils/helpers.js')
+} = require('./core/utils/buttons')
+const { 
+  START_PHRASE,
+  HELP_PHRASE, 
+} = require('./core/utils/phrases')
+const { closeRequest } = require('./core/utils/helpers')
 const bot = new Telegraf(BOT_TOKEN)
-const userQuery = require('./core/query_service/users/users_query.js')
-const requestQuery = require('./core/query_service/requests/requests_query.js')
-const responseQuery = require('./core/query_service/responses/responses_query.js')
-const SceneGenerator = require('./scenes.js')
+const userQuery = require('./core/query_service/users/users_query')
+const requestQuery = require('./core/query_service/requests/requests_query')
+const responseQuery = require('./core/query_service/responses/responses_query')
+const SceneGenerator = require('./scenes')
 const sg = new SceneGenerator()
 
 const helpRequest = sg.genHelpRequest
@@ -26,6 +30,7 @@ const stage = new Stage([helpRequest()])
 
 bot.use(session())
 bot.use(stage.middleware())
+bot.use(auth)
 
 bot.start(async ctx => {
   const telegramId = ctx.from.id
@@ -39,6 +44,21 @@ bot.start(async ctx => {
   })
 
   await ctx.reply(START_PHRASE, responseMenu('Начать', 'reqSceneStart'))
+})
+bot.help(async ctx => {
+  if (ctx.message.chat.id !== ctx.from.id) return
+
+  await ctx.reply(HELP_PHRASE)
+})
+bot.command('updateProfile', async ctx => {
+  if (ctx.message.chat.id !== ctx.from.id) return
+
+  await userQuery.update(ctx.from.id, {
+    name: ctx.from.first_name || null,
+    surname: ctx.from.last_name || null,
+  })
+
+  await ctx.reply('Ваш профиль успешно обновлён!')
 })
 bot.command('changeGender', async ctx => {
   if (ctx.message.chat.id !== ctx.from.id) return
@@ -55,8 +75,54 @@ bot.hears(['👦 Мужчина', '👩 Женщина'], async ctx => {
   await userQuery.update(ctx.update.message.from.id, { gender })
   await ctx.reply('Настройки успешно изменены!')
 })
+bot.hears('ban!', async ctx => {
+  if (String(ctx.chat.id) !== EMPATHY_CHAT_ID) return
+
+  const messageId = ctx.message?.reply_to_message?.message_id
+
+  if (messageId) {
+    const res = await userQuery.ban(messageId)
+
+    if (res) {
+      await ctx.telegram.sendMessage(
+        EMPATHY_CHAT_ID,
+        'Автору запроса запрещён доступ к боту Мотя и чату Эмпатии.', 
+        { reply_to_message_id: Number(messageId) }
+      )
+
+      if (res.status === 'active') {
+        await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(messageId))
+      }
+    }
+  }
+})
+bot.hears('unban!', async ctx => {
+  if (String(ctx.chat.id) !== EMPATHY_CHAT_ID) return
+
+  const messageId = ctx.message?.reply_to_message?.message_id
+
+  if (messageId) {
+    const res = await userQuery.unban(messageId)
+
+    if (res) {
+      await ctx.telegram.sendMessage(
+        EMPATHY_CHAT_ID,
+        'Автору запроса восстановлен доступ к боту Мотя и чату Эмпатии.', 
+        { reply_to_message_id: Number(messageId) }
+      )
+    }
+  }
+})
 bot.on('text', async ctx => {
   if (ctx.message.chat.id !== ctx.from.id) return
+  
+  const activeReq = await requestQuery.findUserActiveRequest(ctx.from.id)
+
+  if (activeReq) {
+    await ctx.scene.enter('helpRequest')
+
+    return
+  }
 
   await ctx.reply(
     'Если тебе нужно найти того, кому можно высказаться, нажми на кнопку ниже', 
@@ -71,7 +137,7 @@ bot.on('callback_query', async ctx => {
     const user = await userQuery.find(ctx.from.id)
     if (!user) {
       await ctx.answerCbQuery(
-        'Для того, чтобы откликаться на сообщения, напиши /start в чат с ботом Мотя =)',
+        'Для того, чтобы откликаться на сообщения, напиши /start в чат с ботом Мотя 😊',
         true
       )
 
@@ -86,6 +152,7 @@ bot.on('callback_query', async ctx => {
         'Для того, чтобы человек мог с Вами связаться, пожалуйста, заполните в настройках аккаунта Telegram поле username',
         true
       )
+
       return
     }
 
@@ -116,10 +183,10 @@ bot.on('callback_query', async ctx => {
     let status = ''
 
     if (!req || req.status !== 'active') {
-      await ctx.answerCbQuery('Запрос уже закрыт =)', true)
+      await ctx.answerCbQuery('Запрос уже закрыт 😊', true)
       return
     } else if (additionalInfo.startsWith('@')) {
-      ctx.answerCbQuery(
+      await ctx.answerCbQuery(
         `Вы приняли отклик от ${additionalInfo}. Напишите ему/ей в личные сообщения.`,
         true
       )
@@ -133,7 +200,7 @@ bot.on('callback_query', async ctx => {
 
     await closeRequest(ctx, req, status)
   } else if (buttonValue === 'reqSceneStart') {
-    ctx.answerCbQuery()
+    await ctx.answerCbQuery()
     await ctx.scene.enter('helpRequest')
   }
 })

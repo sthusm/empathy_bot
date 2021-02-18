@@ -5,6 +5,7 @@ const {
   chooseGender,
   selectRequestType,
   selectPrivacy,
+  inlineKeyboard,
 } = require('./core/utils/buttons.js')
 const userQuery = require('./core/query_service/users/users_query.js')
 const requestQuery = require('./core/query_service/requests/requests_query.js')
@@ -12,25 +13,26 @@ const {
   requestTextGenerator,
   convertTime,
   closeRequest,
+  clearSession,
 } = require('./core/utils/helpers.js')
 const { 
   ASK_REPLY,
   OFFER_REPLY,
 } = require('./core/utils/phrases.js')
+
 class SceneGenerator {
   genHelpRequest () {
     const helpRequest = new Scene('helpRequest')
 
     helpRequest.enter(async ctx => {
       const req = await requestQuery.findUserActiveRequest(ctx.from.id)
-      for (let pror in ctx.session) console.log('pr', pror === '__scenes')
-      console.log('rrreeeqqq:', ctx.session)
-      if (req || ctx.session.activeRequest) {
+      console.log('session:', ctx.session)
+      console.log('rrreeeqqq:', req)
+      if (req) {
         ctx.session.activeRequest = true
         await ctx.scene.leave()
         return
       }
-      ctx.session.enterScene = true
   
       const user = await userQuery.find(ctx.from.id)
       if (!user) return
@@ -82,7 +84,8 @@ class SceneGenerator {
         messageText = ASK_REPLY
       }
       
-      await ctx.reply(messageText, { parse_mode: 'HTML' })
+      await ctx.reply(messageText, inlineKeyboard('Отменить'))
+
       delete ctx.session.reqTypeChoosing
     })
     helpRequest.hears(['Анонимно', 'Не анонимно'], async ctx => {
@@ -96,7 +99,16 @@ class SceneGenerator {
       ctx.session.private = ctx.match === 'Анонимно'
       ctx.session.waitForTime = true
 
-      await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 60 минут).')
+      await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 240 минут).', inlineKeyboard('Отменить'))
+    })
+    helpRequest.hears('Отменить', async ctx => {
+      if (ctx.session.activeRequest) return
+
+      clearSession(ctx)
+
+      ctx.session.forceExit = true
+
+      await ctx.scene.leave()
     })
     helpRequest.hears(/^[-]?\d+$/, async ctx => {
       if (ctx.session.activeRequest) {
@@ -107,8 +119,8 @@ class SceneGenerator {
       if (!ctx.session.waitForTime) return
 
       const duration = Number(ctx.message.text)
-      if (duration > 60 || duration < 0) {
-        await ctx.reply('Вы ввели не корректное число =)')
+      if (duration > 240 || duration < 0) {
+        await ctx.reply('Вы ввели не корректное число 😊')
         return
       }
 
@@ -126,10 +138,16 @@ class SceneGenerator {
         duration,
       })
 
-      ctx.session.reqTimeout = setTimeout(closeRequest, convertTime(duration), ctx, req[0])
+      clearSession(ctx)
 
-      ctx.session.activeRequest = true
-      delete ctx.session.waitForTime
+      ctx.session.reqTimeout = setTimeout(
+        closeRequest, 
+        convertTime(duration), 
+        ctx, 
+        req[0],
+        'closed_by_time',
+        true
+      )
 
       await ctx.scene.leave()
     })
@@ -148,7 +166,7 @@ class SceneGenerator {
 
         if (ctx.session.private === false) {
           ctx.session.waitForTime = true
-          await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 60 минут).')
+          await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 240 минут).', inlineKeyboard('Отменить'))
         } else {
           await ctx.reply('Как разместить ваш запрос?', selectPrivacy())
         }
@@ -156,18 +174,20 @@ class SceneGenerator {
         await ctx.reply('Слишком короткий запрос, необходимо ввести хотя бы 15 символов')
       }
     })
-    helpRequest.on('message', async ctx => ctx.reply('Пока что я понимаю только текст =)'))
+    helpRequest.on('message', async ctx => ctx.reply('Пока что я понимаю только текст 😊'))
     helpRequest.leave(async ctx => {
-      if (ctx.session.activeRequest && !ctx.session.enterScene) {
+      if (ctx.session.activeRequest) {
         await ctx.reply(
           'У вас есть действующий запрос на эмпатию. Закройте его, либо выберите человека, откликнувшегося на Ваш запрос.',
           responseMenu('Закрыть запрос', 'helpReqCancel')
         )
-      } else {
+      } else if (ctx.session.forceExit) {
+        await ctx.reply('Запрос отменён')
+        delete ctx.session.forceExit
+      }
+        else {
         await ctx.reply('Спасибо! Ваш запрос отправлен. Ожидайте пока кто-нибудь откликнется на него!')
       }
-  
-      ctx.session.enterScene = false
     })
 
     return helpRequest
