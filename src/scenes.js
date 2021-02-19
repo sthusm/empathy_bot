@@ -73,16 +73,20 @@ class SceneGenerator {
       if (!ctx.session.reqTypeChoosing) return
 
       let messageText
-      if (ctx.match === 'Предложить') {
-        ctx.session.private = false
-        ctx.session.reqType = 'offer'
-        messageText = OFFER_REPLY
-      } if (ctx.match === 'Просто пообщаться') {
-        ctx.session.reqType = 'communication'
-        messageText = COMMUNICATION_REPLY
-      } else {
-        ctx.session.reqType = 'ask'
-        messageText = ASK_REPLY
+      switch (ctx.match) {
+        case 'Предложить':
+          ctx.session.private = false
+          ctx.session.reqType = 'offer'
+          messageText = OFFER_REPLY
+          break
+        case 'Запросить':
+          ctx.session.reqType = 'ask'
+          messageText = ASK_REPLY
+          break
+        case 'Просто пообщаться':
+          ctx.session.reqType = 'communication'
+          messageText = COMMUNICATION_REPLY
+          break
       }
       
       await ctx.reply(messageText, inlineKeyboard('Отменить'))
@@ -121,7 +125,7 @@ class SceneGenerator {
 
       const duration = parseInt(ctx.message.text)
       if (duration > 24 || duration < 1) {
-        await ctx.reply('Вы ввели не корректное число 😊')
+        await ctx.reply('Вы ввели некорректное число 😊')
         return
       }
 
@@ -154,7 +158,7 @@ class SceneGenerator {
     })
     helpRequest.on('text', async ctx => {
       if (ctx.session.waitForTime) {
-        await ctx.reply('Вы ввели не корректное значение 😊')
+        await ctx.reply('Вы ввели некорректное значение 😊')
         return
       }
 
@@ -187,7 +191,7 @@ class SceneGenerator {
           responseMenu('Закрыть запрос', 'helpReqCancel')
         )
       } else if (ctx.session.forceExit) {
-        await ctx.reply('Запрос отменён')
+        await ctx.reply('Запрос отменён', inlineKeyboard('Начать заново'))
         delete ctx.session.forceExit
       }
         else {

@@ -79,23 +79,23 @@ bot.hears('ban!', async ctx => {
   if (String(ctx.chat.id) !== EMPATHY_CHAT_ID) return
   const user = await ctx.telegram.getChatMember(EMPATHY_CHAT_ID, ctx.from.id)
 
-  if (user.status !== 'creator' || user.status !== 'administrator') return
-
-  const messageId = ctx.message?.reply_to_message?.message_id
-
-  if (messageId) {
-    const res = await userQuery.ban(messageId)
-
-    if (res) {
-      await ctx.telegram.kickChatMember(EMPATHY_CHAT_ID, Number(res.author_id))
-      await ctx.telegram.sendMessage(
-        EMPATHY_CHAT_ID,
-        'Автору запроса запрещён доступ к боту Мотя и чату Эмпатии.', 
-        { reply_to_message_id: Number(messageId) }
-      )
-
-      if (res.status === 'active') {
-        await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(messageId))
+  if (user.status !== 'creator' || user.status !== 'administrator') {
+    const messageId = ctx.message?.reply_to_message?.message_id
+  
+    if (messageId) {
+      const res = await userQuery.ban(messageId)
+  
+      if (res) {
+        await ctx.telegram.kickChatMember(EMPATHY_CHAT_ID, Number(res.author_id))
+        await ctx.telegram.sendMessage(
+          EMPATHY_CHAT_ID,
+          'Автору запроса запрещён доступ к боту Мотя и чату Эмпатии.', 
+          { reply_to_message_id: Number(messageId) }
+        )
+  
+        if (res.status === 'active') {
+          await ctx.telegram.editMessageReplyMarkup(EMPATHY_CHAT_ID, Number(messageId))
+        }
       }
     }
   }
@@ -105,22 +105,28 @@ bot.hears('unban!', async ctx => {
 
   const user = await ctx.telegram.getChatMember(EMPATHY_CHAT_ID, ctx.from.id)
 
-  if (user.status !== 'creator' || user.status !== 'administrator') return
-
-  const messageId = ctx.message?.reply_to_message?.message_id
-
-  if (messageId) {
-    const res = await userQuery.unban(messageId)
-
-    if (res) {
-      await ctx.telegram.unbanChatMember(EMPATHY_CHAT_ID, Number(res.author_id))
-      await ctx.telegram.sendMessage(
-        EMPATHY_CHAT_ID,
-        'Автору запроса восстановлен доступ к боту Мотя и чату Эмпатии.', 
-        { reply_to_message_id: Number(messageId) }
-      )
+  if (user.status !== 'creator' || user.status !== 'administrator') {
+    const messageId = ctx.message?.reply_to_message?.message_id
+  
+    if (messageId) {
+      const res = await userQuery.unban(messageId)
+  
+      if (res) {
+        await ctx.telegram.unbanChatMember(EMPATHY_CHAT_ID, Number(res.author_id))
+        await ctx.telegram.sendMessage(
+          EMPATHY_CHAT_ID,
+          'Автору запроса восстановлен доступ к боту Мотя и чату Эмпатии.', 
+          { reply_to_message_id: Number(messageId) }
+        )
+      }
     }
   }
+
+})
+bot.hears('Начать заново', async ctx => {
+  if (ctx.message.chat.id !== ctx.from.id) return
+
+  await ctx.scene.enter('helpRequest')
 })
 bot.on('text', async ctx => {
   if (ctx.message.chat.id !== ctx.from.id) return
