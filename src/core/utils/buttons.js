@@ -14,8 +14,8 @@ const chooseGender = () => {
     .markup(m => 
       m
         .keyboard([
-          m.callbackButton('👦 Мужчина', 'Male'),
-          m.callbackButton('👩 Женщина', 'Female'),
+          m.button('👦 Мужчина'),
+          m.button('👩 Женщина'),
         ])
         .resize()
         .oneTime()
@@ -27,8 +27,9 @@ const selectRequestType = () => {
     .markup(m =>
       m
         .keyboard([
-          m.callbackButton('Предложить', 'Offer'),
-          m.callbackButton('Запросить', 'Ask'),
+          m.button('Предложить'),
+          m.button('Запросить'),
+          m.button('Просто пообщаться'),
         ])
         .resize()
         .oneTime()
@@ -40,8 +41,8 @@ const selectPrivacy = () => {
     .markup(m =>
       m
         .keyboard([
-          m.callbackButton('Анонимно', 'Private'),
-          m.callbackButton('Не анонимно', 'Public'),
+          m.button('Анонимно'),
+          m.button('Не анонимно'),
         ])
         .resize()
         .oneTime()

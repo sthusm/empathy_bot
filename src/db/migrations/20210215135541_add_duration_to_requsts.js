@@ -1,5 +1,5 @@
 
-exports.up = async function(knex) {  
+exports.up = async function (knex) {  
   await knex.schema.alterTable('requests', table => {
     table
       .integer('duration')

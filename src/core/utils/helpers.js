@@ -1,7 +1,8 @@
 const { EMPATHY_CHAT_ID } = require('../../config.js')
 const Requests = require('../../db/dao/requests/requests.js')
-// в 1 минуте
-const MILLISECOND = 60000
+
+// в 1 часе
+const MILLISECOND = 3600000
 
 const genderMap = {
   'male': '👦',
@@ -11,6 +12,7 @@ const genderMap = {
 const reqTypeMap = {
   'offer': '🦒 Предложение эмпатии',
   'ask': '🌿 Запрос на эмпатию',
+  'communication': '💬 Ищу собеседника',
 }
 
 const userFullname = user => {
@@ -31,7 +33,7 @@ ${genderMap[data.user.gender]} ${data.private ? 'Анонимно' : `${userFull
 `
 }
 
-const convertTime = (minutes) => Number(minutes) * MILLISECOND
+const convertTime = (hours) => Number(hours) * MILLISECOND
 
 const clearSession = ctx => {
   for (let prop in ctx.session) {
@@ -60,10 +62,24 @@ const closeRequest = async (ctx, req, status = 'closed_by_time', calledByTimeout
   clearSession(ctx)
 }
 
+const formatAlterTableEnumSql = (
+  tableName,
+  columnName,
+  enums
+) => {
+  const constraintName = `${tableName}_${columnName}_check`
+
+  return [
+    `ALTER TABLE ${tableName} DROP CONSTRAINT IF EXISTS ${constraintName};`,
+    `ALTER TABLE ${tableName} ADD CONSTRAINT ${constraintName} CHECK (${columnName} = ANY (ARRAY['${enums.join("'::text, '")}'::text]));`,
+  ].join('\n')
+}
+
 module.exports = {
   genderMap,
   requestTextGenerator,
   convertTime,
   closeRequest,
   clearSession,
+  formatAlterTableEnumSql,
 }

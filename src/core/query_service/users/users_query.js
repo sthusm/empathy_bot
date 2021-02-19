@@ -74,7 +74,7 @@ class UsersQueryService {
 
     await User.update(authorId, { status: 'active' })
 
-    return true
+    return req
   }
 }
 

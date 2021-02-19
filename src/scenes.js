@@ -7,8 +7,6 @@ const {
   selectPrivacy,
   inlineKeyboard,
 } = require('./core/utils/buttons.js')
-const userQuery = require('./core/query_service/users/users_query.js')
-const requestQuery = require('./core/query_service/requests/requests_query.js')
 const { 
   requestTextGenerator,
   convertTime,
@@ -18,7 +16,10 @@ const {
 const { 
   ASK_REPLY,
   OFFER_REPLY,
+  COMMUNICATION_REPLY,
 } = require('./core/utils/phrases.js')
+const userQuery = require('./core/query_service/users/users_query.js')
+const requestQuery = require('./core/query_service/requests/requests_query.js')
 
 class SceneGenerator {
   genHelpRequest () {
@@ -26,8 +27,7 @@ class SceneGenerator {
 
     helpRequest.enter(async ctx => {
       const req = await requestQuery.findUserActiveRequest(ctx.from.id)
-      console.log('session:', ctx.session)
-      console.log('rrreeeqqq:', req)
+
       if (req) {
         ctx.session.activeRequest = true
         await ctx.scene.leave()
@@ -36,8 +36,6 @@ class SceneGenerator {
   
       const user = await userQuery.find(ctx.from.id)
       if (!user) return
-
-      console.log(ctx.from)
 
       ctx.session.user = {
         username: ctx.from.username,
@@ -66,7 +64,7 @@ class SceneGenerator {
       ctx.session.reqTypeChoosing = true
       delete ctx.session.genderChoosing
     })
-    helpRequest.hears(['Предложить', 'Запросить'], async ctx => {
+    helpRequest.hears(['Предложить', 'Запросить', 'Просто пообщаться'], async ctx => {
       if (ctx.session.activeRequest) {
         await ctx.scene.leave()
         return
@@ -79,6 +77,9 @@ class SceneGenerator {
         ctx.session.private = false
         ctx.session.reqType = 'offer'
         messageText = OFFER_REPLY
+      } if (ctx.match === 'Просто пообщаться') {
+        ctx.session.reqType = 'communication'
+        messageText = COMMUNICATION_REPLY
       } else {
         ctx.session.reqType = 'ask'
         messageText = ASK_REPLY
@@ -99,7 +100,7 @@ class SceneGenerator {
       ctx.session.private = ctx.match === 'Анонимно'
       ctx.session.waitForTime = true
 
-      await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 240 минут).', inlineKeyboard('Отменить'))
+      await ctx.reply('Укажите время действия вашего запроса в часах (от 1 до 24).', inlineKeyboard('Отменить'))
     })
     helpRequest.hears('Отменить', async ctx => {
       if (ctx.session.activeRequest) return
@@ -118,8 +119,8 @@ class SceneGenerator {
 
       if (!ctx.session.waitForTime) return
 
-      const duration = Number(ctx.message.text)
-      if (duration > 240 || duration < 0) {
+      const duration = parseInt(ctx.message.text)
+      if (duration > 24 || duration < 1) {
         await ctx.reply('Вы ввели не корректное число 😊')
         return
       }
@@ -152,10 +153,14 @@ class SceneGenerator {
       await ctx.scene.leave()
     })
     helpRequest.on('text', async ctx => {
+      if (ctx.session.waitForTime) {
+        await ctx.reply('Вы ввели не корректное значение 😊')
+        return
+      }
+
       if (
         !ctx.session.user || 
         !ctx.session.reqType || 
-        ctx.session.waitForTime || 
         ctx.session.message
       ) return
   
@@ -166,7 +171,7 @@ class SceneGenerator {
 
         if (ctx.session.private === false) {
           ctx.session.waitForTime = true
-          await ctx.reply('Укажите время действия вашего запроса в минутах (но не больше 240 минут).', inlineKeyboard('Отменить'))
+          await ctx.reply('Укажите время действия вашего запроса в часах (от 1 до 24).', inlineKeyboard('Отменить'))
         } else {
           await ctx.reply('Как разместить ваш запрос?', selectPrivacy())
         }
