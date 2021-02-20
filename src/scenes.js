@@ -27,7 +27,6 @@ class SceneGenerator {
 
     helpRequest.enter(async ctx => {
       const req = await requestQuery.findUserActiveRequest(ctx.from.id)
-
       if (req) {
         ctx.session.activeRequest = true
         await ctx.scene.leave()
@@ -193,9 +192,11 @@ class SceneGenerator {
       } else if (ctx.session.forceExit) {
         await ctx.reply('Запрос отменён', inlineKeyboard('Начать заново'))
         delete ctx.session.forceExit
-      }
-        else {
-        await ctx.reply('Спасибо! Ваш запрос отправлен. Ожидайте пока кто-нибудь откликнется на него!')
+      } else {
+        await ctx.reply(
+          'Спасибо! Ваш запрос отправлен. Ожидайте пока кто-нибудь откликнется на него!',
+          inlineKeyboard('Закрыть запрос')
+        )
       }
     })
 

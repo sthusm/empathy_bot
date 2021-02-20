@@ -4,6 +4,8 @@ const Requests = require('../../db/dao/requests/requests.js')
 // в 1 часе
 const MILLISECOND = 3600000
 
+const NEW_USER_JOINED_DELAY = 300000
+
 const genderMap = {
   'male': '👦',
   'female': '👩',
@@ -17,9 +19,11 @@ const reqTypeMap = {
 
 const userFullname = user => {
   let fullname = ''
+  const name = user.name || user.first_name
+  const surname = user.surname || user.last_name
 
-  if (user.name) fullname += user.name
-  if (user.surname) fullname +=  fullname.length ? ` ${user.surname}` : user.surname
+  if (name) fullname += name
+  if (surname) fullname +=  fullname.length ? ` ${surname}` : surname
 
   return fullname
 }
@@ -82,4 +86,6 @@ module.exports = {
   closeRequest,
   clearSession,
   formatAlterTableEnumSql,
+  userFullname,
+  NEW_USER_JOINED_DELAY,
 }

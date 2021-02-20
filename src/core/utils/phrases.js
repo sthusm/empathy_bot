@@ -42,6 +42,20 @@ const COMMUNICATION_REPLY = `
 const NOT_MEMBER_REPLY = `
 Вы не являетесь участником чата Кафе Эмпатии @empathycafe (на данный момент @testMotya). Для того, чтобы пользоваться возможностями бота, необходимо в него вступить.
 `
+
+const WELCOME_MSG_REPLY = `
+Поместите приветственное сообщение после команды.
+
+Примеры:
+/welcome_msg Добро пожаловать в чат!
+
+Отключить приветствие:
+/welcome_msg disable
+
+Включить приветствие:
+/welcome_msg enable
+`
+
 module.exports = {
   START_PHRASE,
   HELP_PHRASE,
@@ -49,4 +63,5 @@ module.exports = {
   OFFER_REPLY,
   COMMUNICATION_REPLY,
   NOT_MEMBER_REPLY,
+  WELCOME_MSG_REPLY,
 }

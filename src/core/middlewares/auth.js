@@ -1,6 +1,7 @@
 const usersQuery = require('../query_service/users/users_query')
 const { EMPATHY_CHAT_ID } = require('../../config')
 const { NOT_MEMBER_REPLY } = require('../utils/phrases')
+const { logger } = require('../utils/pino')
 
 module.exports = async (ctx, next) => {
   if (String(ctx.chat.id) === EMPATHY_CHAT_ID) return await next()
@@ -22,7 +23,7 @@ module.exports = async (ctx, next) => {
 
     await next()
   } catch (e) {
-    console.log(e)
+    logger.fatal(e)
     if (e.description === 'Bad Request: user not found') {
       await ctx.reply(NOT_MEMBER_REPLY)
     }
