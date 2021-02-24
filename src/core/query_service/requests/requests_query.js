@@ -37,7 +37,7 @@ class RequestsQueryService {
     try {
       const activeReqs = await Requests.findAllActiveRequests()
       activeReqs.forEach(async req => {
-        const expirationTime = moment(req.created_at).add(Number(req.duration), 'minutes')
+        const expirationTime = moment(req.created_at).add(Number(req.duration), 'hours')
         const now = moment()
   
         if (now.isBefore(expirationTime)) {

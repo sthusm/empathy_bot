@@ -30,6 +30,7 @@ const selectRequestType = () => {
           m.button('Предложить'),
           m.button('Запросить'),
           m.button('Просто пообщаться'),
+          m.button('Отменить'),
         ])
         .resize()
         .oneTime()
@@ -43,18 +44,19 @@ const selectPrivacy = () => {
         .keyboard([
           m.button('Анонимно'),
           m.button('Не анонимно'),
+          m.button('Отменить'),
         ])
         .resize()
         .oneTime()
     )
 }
 
-const inlineKeyboard = (text) => {
+const inlineKeyboard = (text, hide = false) => {
   return Extra
     .markup(m =>
       m
         .keyboard([
-          m.button(text),
+          m.button(text, hide),
         ])
         .resize()
         .oneTime()

@@ -1,4 +1,5 @@
 const Scene = require('telegraf/scenes/base')
+const Extra = require('telegraf/extra')
 const { EMPATHY_CHAT_ID } = require('./config.js')
 const { 
   responseMenu,
@@ -30,11 +31,17 @@ class SceneGenerator {
       if (req) {
         ctx.session.activeRequest = true
         await ctx.scene.leave()
+
         return
       }
   
       const user = await userQuery.find(ctx.from.id)
-      if (!user) return
+      if (!user) {
+        ctx.session.userNotFound = true
+        await ctx.scene.leave()
+
+        return
+      }
 
       ctx.session.user = {
         username: ctx.from.username,
@@ -192,10 +199,13 @@ class SceneGenerator {
       } else if (ctx.session.forceExit) {
         await ctx.reply('Запрос отменён', inlineKeyboard('Начать заново'))
         delete ctx.session.forceExit
+      } else if (ctx.session.userNotFound) {
+        await ctx.reply('Чтобы мы могли начать, напиши мне команду /start 😊')
+        delete ctx.session.userNotFound
       } else {
         await ctx.reply(
-          'Спасибо! Твой запрос отправлен. Ожидай пока кто-нибудь откликнется на него!',
-          inlineKeyboard('Закрыть запрос')
+          'Спасибо! Твой запрос отправлен. Ожидай пока кто-нибудь откликнется на него! \n Ты можешь в любой момент написать «Закрыть запрос» если передумал.',
+          Extra.markup((m) => m.removeKeyboard())
         )
       }
     })

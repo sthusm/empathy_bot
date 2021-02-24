@@ -179,14 +179,14 @@ const cbQueryHandler = async ctx => {
     } else {
       await ctx.telegram.sendMessage(
         buttonValue, 
-        `@${username} откликнулся на твоё сообщение`, 
+        `@${username} откликнулся/откликнулась на твоё сообщение`, 
         responseMenu('🤝 Принять запрос', `helpReqCancel userdata: ${userFullname(ctx.from)} @${username}`)
       )
       await responseQuery.create({
         requestId: req.id,
         responserId: ctx.from.id,
       })
-      message = 'Спасибо! твой отклик успешно отправлен!'
+      message = 'Спасибо! Твой отклик успешно отправлен!'
     }
 
     await ctx.answerCbQuery(message, true)
