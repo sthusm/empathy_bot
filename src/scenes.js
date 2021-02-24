@@ -43,9 +43,9 @@ class SceneGenerator {
 
       if (!user.gender) {
         ctx.session.genderChoosing = true
-        await ctx.reply('Укажите Ваш пол', chooseGender())
+        await ctx.reply('Укажи твой пол', chooseGender())
       } else {
-        await ctx.reply('Вы хотите предложить эмпатию или запросить?', selectRequestType())
+        await ctx.reply('Ты хочешь предложить эмпатию или запросить?', selectRequestType())
         ctx.session.reqTypeChoosing = true
       }
     })
@@ -59,7 +59,7 @@ class SceneGenerator {
       await userQuery.update(ctx.session.user.telegramId, { gender })
 
       ctx.session.user.gender = gender
-      await ctx.reply('Вы хотите предложить эмпатию или запросить?', selectRequestType())
+      await ctx.reply('Ты хочешь предложить эмпатию или запросить?', selectRequestType())
       ctx.session.reqTypeChoosing = true
       delete ctx.session.genderChoosing
     })
@@ -103,7 +103,7 @@ class SceneGenerator {
       ctx.session.private = ctx.match === 'Анонимно'
       ctx.session.waitForTime = true
 
-      await ctx.reply('Укажите время действия вашего запроса в часах (от 1 до 24).', inlineKeyboard('Отменить'))
+      await ctx.reply('Укажи время действия твоего запроса в часах (от 1 до 24).', inlineKeyboard('Отменить'))
     })
     helpRequest.hears('Отменить', async ctx => {
       if (ctx.session.activeRequest) return
@@ -124,7 +124,7 @@ class SceneGenerator {
 
       const duration = parseInt(ctx.message.text)
       if (duration > 24 || duration < 1) {
-        await ctx.reply('Вы ввели некорректное число 😊')
+        await ctx.reply('Ты ввел некорректное число 😊')
         return
       }
 
@@ -157,7 +157,7 @@ class SceneGenerator {
     })
     helpRequest.on('text', async ctx => {
       if (ctx.session.waitForTime) {
-        await ctx.reply('Вы ввели некорректное значение 😊')
+        await ctx.reply('Ты ввел некорректное значение 😊')
         return
       }
 
@@ -174,9 +174,9 @@ class SceneGenerator {
 
         if (ctx.session.private === false) {
           ctx.session.waitForTime = true
-          await ctx.reply('Укажите время действия вашего запроса в часах (от 1 до 24).', inlineKeyboard('Отменить'))
+          await ctx.reply('Укажи время действия твоего запроса в часах (от 1 до 24).', inlineKeyboard('Отменить'))
         } else {
-          await ctx.reply('Как разместить ваш запрос?', selectPrivacy())
+          await ctx.reply('Как разместить твой запрос?', selectPrivacy())
         }
       } else {
         await ctx.reply('Слишком короткий запрос, необходимо ввести хотя бы 15 символов')
@@ -186,7 +186,7 @@ class SceneGenerator {
     helpRequest.leave(async ctx => {
       if (ctx.session.activeRequest) {
         await ctx.reply(
-          'У вас есть действующий запрос на эмпатию. Закройте его, либо выберите человека, откликнувшегося на Ваш запрос.',
+          'У тебя есть действующий запрос на эмпатию. Закрой его, либо выбери человека, откликнувшегося на твой запрос.',
           responseMenu('Закрыть запрос', 'helpReqCancel')
         )
       } else if (ctx.session.forceExit) {
@@ -194,7 +194,7 @@ class SceneGenerator {
         delete ctx.session.forceExit
       } else {
         await ctx.reply(
-          'Спасибо! Ваш запрос отправлен. Ожидайте пока кто-нибудь откликнется на него!',
+          'Спасибо! Твой запрос отправлен. Ожидай пока кто-нибудь откликнется на него!',
           inlineKeyboard('Закрыть запрос')
         )
       }

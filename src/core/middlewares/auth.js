@@ -10,7 +10,7 @@ module.exports = async (ctx, next) => {
     const user = await usersQuery.find(ctx.from.id)
 
     if (user && user.status === 'blocked') {
-      await ctx.reply('Вам запрещён доступ к боту!')
+      await ctx.reply('Тебе запрещён доступ к боту!')
       return
     }
     

@@ -8,12 +8,12 @@ module.exports = Object.freeze({
   dbConfig: {
     client: 'pg',
     connection: {
-      port: env.dbPort || 5432,
-      user: env.dbUser || 'postgres',
-      host: env.dbHost || 'localhost',
-      database: env.database || 'empathy_bot',
-      password: env.dbPassword || '10241024',
-      timezone: env.TZ || 'UTC',
+      port: env.PG_PORT || 5432,
+      user: env.PG_USER || 'postgres',
+      host: env.PG_HOST || 'localhost',
+      database: env.PG_DATABASE || 'empathy_bot',
+      password: env.PG_PASSWORD || '10241024',
+      timezone: env.PG_TZ || 'UTC',
     },
   },
 })
