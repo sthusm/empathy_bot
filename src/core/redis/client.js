@@ -4,11 +4,12 @@ const { logger } = require('../utils/pino.js')
 const {
   REDIS_PORT,
   REDIS_HOST,
+  REDIS_PASSWORD,
 } = require('../../config.js')
 
 bluebird.promisifyAll(redis)
 
-const client = redis.createClient(REDIS_PORT, REDIS_HOST)
+const client = redis.createClient(REDIS_PORT, REDIS_HOST, { password: REDIS_PASSWORD })
 
 client.on('connect', () => logger.info('Redis client connected'))
 client.on('ready', () => logger.info('Redis server is ready'))
